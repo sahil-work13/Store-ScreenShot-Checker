@@ -2,140 +2,417 @@
 <html lang="en"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Store Screenshot Checker</title>
+<meta name="description" content="Check App Store and Google Play screenshots against the official size, format and count rules. Runs in your browser.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='7' y='3' width='18' height='26' rx='4' fill='%2318181b'/%3E%3Cpath d='M11.5 16.5l3 3 6-7' stroke='%23fff' stroke-width='2.4' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
-  :root{--bg:#f6f7f5;--card:#fff;--ink:#17201a;--mute:#5c6660;--line:#dfe3df;--pass:#1f7a3d;--warn:#9a6700;--fail:#b42318;--warnbg:#fff4d6;--greybg:#eceeec;--accent:#2e4636}
-  @media (prefers-color-scheme:dark){:root{--bg:#0f1411;--card:#171e19;--ink:#e8ede9;--mute:#9aa59e;--line:#2a332d;--pass:#5fd38a;--warn:#f0c048;--fail:#ff7b6e;--warnbg:#3a2f0f;--greybg:#222a25;--accent:#bacba5}}
+  :root{
+    --bg:#f7f7f5;--surface:#ffffff;--sunken:#f0f0ec;--ink:#18181b;--ink2:#52525b;--ink3:#8a8a92;
+    --line:#e4e4df;--line2:#d4d4cd;--focus:#2563eb;
+    --pass:#15803d;--pass-bg:#ecf7ef;--warn:#a16207;--warn-bg:#fdf6e3;--fail:#b91c1c;--fail-bg:#fdeeee;
+    --check-a:#ffffff;--check-b:#ececea;
+    --sans:"IBM Plex Sans",system-ui,sans-serif;--mono:"IBM Plex Mono",ui-monospace,monospace;
+    --r:8px;
+  }
+  @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+    --bg:#111113;--surface:#18181b;--sunken:#1f1f23;--ink:#ededef;--ink2:#a1a1aa;--ink3:#71717a;
+    --line:#27272a;--line2:#3f3f46;--focus:#60a5fa;
+    --pass:#4ade80;--pass-bg:#122418;--warn:#facc15;--warn-bg:#2a230c;--fail:#f87171;--fail-bg:#2c1414;
+    --check-a:#232327;--check-b:#1b1b1e}}
+  :root[data-theme="dark"]{
+    --bg:#111113;--surface:#18181b;--sunken:#1f1f23;--ink:#ededef;--ink2:#a1a1aa;--ink3:#71717a;
+    --line:#27272a;--line2:#3f3f46;--focus:#60a5fa;
+    --pass:#4ade80;--pass-bg:#122418;--warn:#facc15;--warn-bg:#2a230c;--fail:#f87171;--fail-bg:#2c1414;
+    --check-a:#232327;--check-b:#1b1b1e}
   *{box-sizing:border-box}
-  body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
-  main{max-width:1100px;margin:0 auto;padding:24px 16px 48px}
-  h1{margin:0 0 4px;font-size:26px}
-  .lead{color:var(--mute);margin:0 0 20px}
-  .banner{padding:12px 14px;border-radius:10px;margin:0 0 12px;background:var(--warnbg)}
-  .banner.grey{background:var(--greybg)}
-  .banner a{color:inherit;font-weight:600}
-  .drop{border:2px dashed var(--line);border-radius:14px;padding:28px 16px;text-align:center;background:var(--card);cursor:pointer}
-  .drop.over{border-color:var(--accent)}
-  .drop b{display:block;font-size:17px;margin-bottom:4px}
-  .btns{margin-top:12px;display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
-  button,label.btn{font:inherit;padding:8px 14px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--ink);cursor:pointer}
-  .note{color:var(--mute);font-size:13px;margin:12px 0 0}
-  .verdict{margin:24px 0 8px;font-size:20px;font-weight:700}
-  .wrap{overflow-x:auto;background:var(--card);border:1px solid var(--line);border-radius:12px}
-  table{width:100%;border-collapse:collapse;min-width:720px}
-  th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:top}
-  th{font-size:12px;text-transform:uppercase;letter-spacing:.04em;color:var(--mute)}
-  td img{width:44px;height:64px;object-fit:contain;background:var(--bg);border-radius:4px}
-  select{font:inherit;max-width:220px;background:var(--bg);color:var(--ink);border:1px solid var(--line);border-radius:6px;padding:3px}
-  .pass{color:var(--pass);font-weight:700}.warn{color:var(--warn);font-weight:700}.fail{color:var(--fail);font-weight:700}
-  .why{color:var(--mute);font-size:13px}
-  footer{margin-top:28px;color:var(--mute);font-size:13px}
-  footer a{color:inherit}
+  html{-webkit-text-size-adjust:100%}
+  body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.5 var(--sans);-webkit-font-smoothing:antialiased}
+  a{color:inherit;text-underline-offset:2px}
+  button,select,input{font:inherit;color:inherit}
+  :focus-visible{outline:2px solid var(--focus);outline-offset:2px;border-radius:4px}
+  .mono{font-family:var(--mono);font-feature-settings:"zero" 1}
+  .wrap{max-width:1180px;margin:0 auto;padding:0 20px}
+
+  /* header */
+  header{border-bottom:1px solid var(--line);background:var(--surface)}
+  .bar{display:flex;align-items:center;gap:16px;min-height:60px;flex-wrap:wrap;padding-top:10px;padding-bottom:10px}
+  .brand{display:flex;align-items:center;gap:10px;font-weight:600;font-size:15px;letter-spacing:-.005em;margin-right:auto}
+  .brand svg{flex:none}
+  .specs-state{display:flex;gap:6px;flex-wrap:wrap}
+  .chip{display:inline-flex;align-items:center;gap:7px;height:28px;padding:0 10px;border:1px solid var(--line);border-radius:999px;font-size:12.5px;color:var(--ink2);text-decoration:none;white-space:nowrap}
+  .chip:hover{border-color:var(--line2);color:var(--ink)}
+  .dot{width:7px;height:7px;border-radius:50%;background:var(--ink3);flex:none}
+  .dot.ok{background:var(--pass)}.dot.stale{background:var(--warn)}.dot.err{background:var(--fail)}
+  nav.tabs{display:flex;gap:2px}
+  nav.tabs button{background:none;border:0;padding:0 12px;height:60px;margin-bottom:-11px;border-bottom:2px solid transparent;color:var(--ink2);cursor:pointer;font-weight:500}
+  nav.tabs button[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--ink)}
+  .icon-btn{width:32px;height:32px;display:grid;place-items:center;border:1px solid var(--line);border-radius:var(--r);background:none;cursor:pointer;color:var(--ink2)}
+  .icon-btn:hover{color:var(--ink);border-color:var(--line2)}
+
+  .notice{margin:16px 0 0;padding:12px 14px;border-radius:var(--r);border:1px solid;font-size:13.5px;display:flex;gap:10px;align-items:flex-start}
+  .notice.stale{background:var(--warn-bg);border-color:color-mix(in srgb,var(--warn) 30%,transparent)}
+  .notice.err{background:var(--sunken);border-color:var(--line)}
+  .notice b{font-weight:600}
+
+  main.wrap{padding-top:24px;padding-bottom:64px}
+  [hidden]{display:none!important}
+
+  /* drop zone */
+  .drop{position:relative;border:1.5px dashed var(--line2);border-radius:12px;background:var(--surface);padding:40px 24px;display:grid;justify-items:center;text-align:center;gap:6px;transition:border-color .12s,background .12s}
+  .drop.over{border-color:var(--ink);background:var(--sunken)}
+  .drop h2{margin:8px 0 0;font-size:17px;font-weight:600;letter-spacing:-.01em}
+  .drop p{margin:0;color:var(--ink2);max-width:520px}
+  .drop .actions{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap;justify-content:center}
+  .drop.busy::after{content:attr(data-busy);position:absolute;inset:0;display:grid;place-items:center;background:color-mix(in srgb,var(--surface) 88%,transparent);border-radius:12px;font-weight:500}
+  .btn{display:inline-flex;align-items:center;gap:7px;height:34px;padding:0 13px;border-radius:var(--r);border:1px solid var(--line2);background:var(--surface);cursor:pointer;font-weight:500;font-size:13.5px;white-space:nowrap}
+  .btn:hover{background:var(--sunken)}
+  .btn.primary{background:var(--ink);color:var(--surface);border-color:var(--ink)}
+  .btn.primary:hover{opacity:.9;background:var(--ink)}
+  .btn.ghost{border-color:transparent;background:none;color:var(--ink2)}
+  .btn.ghost:hover{color:var(--ink);background:var(--sunken)}
+  .hint{font-size:12.5px;color:var(--ink3);margin-top:10px}
+  .hint code{font-family:var(--mono);font-size:12px;background:var(--sunken);padding:1px 5px;border-radius:4px}
+
+  /* empty-state slot list */
+  .what{margin-top:28px}
+  .what h3,.section-title{font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--ink3);margin:0 0 10px}
+  .slot-ref{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:8px}
+  .slot-ref div{border:1px solid var(--line);background:var(--surface);border-radius:var(--r);padding:12px 14px}
+  .slot-ref b{display:block;font-weight:500}
+  .slot-ref span{font-size:12.5px;color:var(--ink2)}
+
+  /* toolbar + summary */
+  .toolbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:10px 12px;border:1px solid var(--line);background:var(--surface);border-radius:var(--r)}
+  .toolbar .count{margin-right:auto;color:var(--ink2);font-size:13.5px}
+  .summary{display:grid;grid-template-columns:1.4fr repeat(3,1fr);gap:0;border:1px solid var(--line);border-radius:var(--r);background:var(--surface);margin-top:16px;overflow:hidden}
+  .summary>div{padding:16px 18px;border-left:1px solid var(--line)}
+  .summary>div:first-child{border-left:0}
+  .summary .label{font-size:12px;color:var(--ink3);text-transform:uppercase;letter-spacing:.06em;font-weight:600}
+  .summary .num{font-family:var(--mono);font-size:26px;font-weight:500;line-height:1.2;margin-top:4px}
+  .summary .verdict{font-size:16px;font-weight:600;margin-top:6px;letter-spacing:-.01em}
+  .summary .verdict small{display:block;font-size:13px;font-weight:400;color:var(--ink2);letter-spacing:0;margin-top:2px}
+  .t-pass{color:var(--pass)}.t-warn{color:var(--warn)}.t-fail{color:var(--fail)}
+
+  .filters{display:flex;gap:4px;margin:24px 0 8px;flex-wrap:wrap}
+  .filters button{height:30px;padding:0 11px;border-radius:999px;border:1px solid var(--line);background:none;cursor:pointer;font-size:13px;color:var(--ink2)}
+  .filters button[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:var(--surface)}
+  .filters .n{font-family:var(--mono);margin-left:5px;opacity:.75}
+
+  /* slot groups */
+  .group{margin-top:20px;border:1px solid var(--line);border-radius:12px;background:var(--surface);overflow:hidden}
+  .ghead{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:14px 16px;border-bottom:1px solid var(--line)}
+  .ghead h3{margin:0;font-size:15px;font-weight:600;letter-spacing:-.01em}
+  .store{font-size:12px;color:var(--ink2);border:1px solid var(--line);border-radius:4px;padding:1px 6px}
+  .quota{margin-left:auto;display:flex;align-items:center;gap:8px;font-size:13px}
+  .meter{width:80px;height:6px;border-radius:3px;background:var(--sunken);overflow:hidden}
+  .meter i{display:block;height:100%;background:var(--pass)}
+  .meter.fail i{background:var(--fail)}
+  .greq{padding:9px 16px;font-size:12.5px;color:var(--ink2);background:var(--sunken);border-bottom:1px solid var(--line)}
+  .greq.fail{color:var(--fail);background:var(--fail-bg)}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));margin:0 -1px -1px 0}
+  .card{background:var(--surface);display:flex;flex-direction:column;min-width:0;border-right:1px solid var(--line);border-bottom:1px solid var(--line)}
+  .thumb{position:relative;height:220px;display:flex;align-items:center;justify-content:center;padding:14px;overflow:hidden;
+    background:repeating-conic-gradient(var(--check-a) 0 25%,var(--check-b) 0 50%) 0 0/14px 14px}
+  .thumb img{display:block;max-width:100%;max-height:100%;width:auto;height:auto;object-fit:contain;box-shadow:0 1px 3px rgba(0,0,0,.18);border-radius:2px}
+  .thumb .nofile{color:var(--ink3);font-size:12.5px}
+  .pill{position:absolute;left:10px;top:10px;font-size:11px;font-weight:600;letter-spacing:.04em;padding:2px 7px;border-radius:4px;text-transform:uppercase}
+  .pill.pass{background:var(--pass-bg);color:var(--pass)}.pill.warn{background:var(--warn-bg);color:var(--warn)}.pill.fail{background:var(--fail-bg);color:var(--fail)}
+  .cbody{padding:11px 12px 13px;display:grid;gap:6px}
+  .fname{font-family:var(--mono);font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .facts{font-family:var(--mono);font-size:11.5px;color:var(--ink2);display:flex;gap:4px 8px;flex-wrap:wrap}
+  .facts .bad{color:var(--fail)}
+  .cbody select{width:100%;height:30px;border:1px solid var(--line);border-radius:6px;background:var(--surface);padding:0 6px;font-size:12.5px}
+  .reasons{margin:0;padding:0;list-style:none;display:grid;gap:3px}
+  .reasons li{font-size:12.5px;line-height:1.4;padding-left:12px;position:relative}
+  .reasons li::before{content:"";position:absolute;left:0;top:.55em;width:5px;height:5px;border-radius:50%}
+  .reasons li.fail{color:var(--fail)}.reasons li.fail::before{background:var(--fail)}
+  .reasons li.warn{color:var(--warn)}.reasons li.warn::before{background:var(--warn)}
+  .empty-filter{padding:28px;text-align:center;color:var(--ink3)}
+  .caveat{margin-top:28px;font-size:13px;color:var(--ink2);border-left:2px solid var(--line2);padding:2px 0 2px 12px}
+
+  /* specs tab */
+  .spec-store{margin-bottom:28px}
+  .spec-head{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;margin-bottom:10px}
+  .spec-head h2{margin:0;font-size:18px;font-weight:600;letter-spacing:-.01em}
+  .spec-head span{color:var(--ink2);font-size:13px}
+  .table-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:var(--r);background:var(--surface)}
+  table{border-collapse:collapse;width:100%;min-width:640px}
+  th,td{text-align:left;padding:10px 14px;border-bottom:1px solid var(--line);vertical-align:top;font-size:13.5px}
+  tr:last-child td{border-bottom:0}
+  th{font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--ink3);font-weight:600;background:var(--sunken)}
+  td .mono{font-size:12.5px}
+  .spec-note{font-size:13px;color:var(--ink2);margin:10px 0 0}
+
+  footer{border-top:1px solid var(--line);padding:20px 0 32px;color:var(--ink3);font-size:12.5px}
+  footer .wrap{display:flex;gap:16px;flex-wrap:wrap;justify-content:space-between}
+
+  @media (max-width:720px){
+    .wrap{padding:0 16px}
+    .summary{grid-template-columns:repeat(3,1fr)}
+    .summary>div:first-child{grid-column:1/-1;border-bottom:1px solid var(--line)}
+    .summary>div:nth-child(2){border-left:0}
+    .bar{gap:10px}
+    #theme{order:1}
+    .specs-state{order:2;width:100%}
+    .chip{height:26px;font-size:12px;padding:0 9px}
+    nav.tabs{order:3;width:100%}
+    nav.tabs button{height:40px;margin-bottom:-11px}
+    main.wrap{padding-top:16px;padding-bottom:48px}
+    .toolbar .count{width:100%}
+    .grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+    .thumb{height:190px}
+    .drop{padding:28px 16px}
+  }
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-</head><body><main>
-<h1>Store Screenshot Checker</h1>
-<p class="lead">Checks App Store and Google Play screenshots against the official technical rules. Files stay in your browser.</p>
-<div id="banners"></div>
+</head><body>
 
-<div class="drop" id="drop">
-  <b>Drop a ZIP, a folder or images here</b>
-  <span class="why">PNG or JPEG. Folder names like <code>google-play-phone</code> or <code>ipad</code> help pick the right slot.</span>
-  <div class="btns">
-    <label class="btn">Choose files<input id="files" type="file" multiple accept=".png,.jpg,.jpeg,.zip" hidden></label>
-    <label class="btn">Choose folder<input id="folder" type="file" webkitdirectory hidden></label>
-    <button id="clear" type="button">Clear</button>
+<header>
+  <div class="wrap bar">
+    <div class="brand">
+      <svg width="22" height="22" viewBox="0 0 32 32" aria-hidden="true"><rect x="7" y="3" width="18" height="26" rx="4" fill="currentColor"/><path d="M11.5 16.5l3 3 6-7" stroke="var(--surface)" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      Store Screenshot Checker
+    </div>
+    <div class="specs-state" id="specState"></div>
+    <button class="icon-btn" id="theme" type="button" aria-label="Toggle dark mode" title="Toggle dark mode">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
+    </button>
+    <nav class="tabs" role="tablist" aria-label="Sections">
+      <button role="tab" aria-selected="true" aria-controls="tab-check" id="t-check" type="button">Check</button>
+      <button role="tab" aria-selected="false" aria-controls="tab-specs" id="t-specs" type="button">Specs</button>
+    </nav>
   </div>
-</div>
-<p class="note">Checks technical rules only (size, shape, format, transparency, count). Content is judged by human review, for example iPad slots must show the app running on an iPad.</p>
+</header>
 
-<div id="out"></div>
-<footer id="foot"></footer>
+<div class="wrap" id="notices"></div>
+
+<main class="wrap">
+  <section id="tab-check" role="tabpanel" aria-labelledby="t-check">
+    <div class="drop" id="drop">
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="color:var(--ink3)"><path d="M12 15V4m0 0l-4 4m4-4l4 4"/><path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg>
+      <h2>Drop screenshots to check them</h2>
+      <p>A ZIP, a folder or individual PNG and JPEG files. Everything is read in this browser tab and never uploaded.</p>
+      <div class="actions">
+        <label class="btn primary" for="files">Choose files</label>
+        <label class="btn" for="folder">Choose folder</label>
+      </div>
+      <div class="hint">Folder names like <code>google-play-phone</code>, <code>ipad</code> or <code>feature</code> pick the slot automatically.</div>
+      <input id="files" type="file" multiple accept=".png,.jpg,.jpeg,.zip,image/png,image/jpeg,application/zip" hidden>
+      <input id="folder" type="file" webkitdirectory hidden>
+    </div>
+
+    <div class="what" id="what">
+      <h3>What gets checked</h3>
+      <div class="slot-ref" id="slotRef"></div>
+    </div>
+
+    <div id="results" hidden>
+      <div class="toolbar">
+        <span class="count" id="fileCount"></span>
+        <label class="btn" for="files">Add files</label>
+        <button class="btn" id="export" type="button">Export CSV</button>
+        <button class="btn ghost" id="clear" type="button">Clear</button>
+      </div>
+      <div class="summary" aria-live="polite" id="summary"></div>
+      <div class="filters" id="filters" role="group" aria-label="Filter results"></div>
+      <div id="groups"></div>
+      <p class="caveat">This checks technical rules only: size, shape, format, transparency and count. Content is judged in human review. For example, iPad screenshots must show the app running on an iPad.</p>
+    </div>
+  </section>
+
+  <section id="tab-specs" role="tabpanel" aria-labelledby="t-specs" hidden></section>
 </main>
+
+<footer><div class="wrap">
+  <span>Files never leave your browser.</span>
+  <span id="footSrc"></span>
+</div></footer>
 
 <script type="module">
 import { inspect, guessSlot, checkImage, checkCounts, isStale } from './check.js';
 
+const $ = s => document.querySelector(s);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const fmtDate = iso => iso ? new Date(iso).toLocaleString(undefined, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : '';
+const fmtDay = d => new Date(d + 'T00:00:00').toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
+const fmtSize = b => b >= 1048576 ? (b / 1048576).toFixed(1) + ' MB' : Math.max(1, Math.round(b / 1024)) + ' KB';
+const dims = sizes => sizes.map(([w, h]) => `${w}×${h}`).join(', ');
+
+// theme: remembered per viewer only
+try { const t = localStorage.getItem('theme'); if (t) document.documentElement.dataset.theme = t; } catch {}
+$('#theme').onclick = () => {
+  const dark = document.documentElement.dataset.theme ? document.documentElement.dataset.theme === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches;
+  document.documentElement.dataset.theme = dark ? 'light' : 'dark';
+  try { localStorage.setItem('theme', document.documentElement.dataset.theme); } catch {}
+};
+
+// tabs
+const tabs = [['#t-check', '#tab-check'], ['#t-specs', '#tab-specs']];
+tabs.forEach(([t, p]) => $(t).onclick = () => tabs.forEach(([t2, p2]) => { $(t2).setAttribute('aria-selected', t2 === t); $(p2).hidden = p2 !== p; }));
+
 const rules = await (await fetch('rules.json', { cache: 'no-store' })).json();
 let status = null;
 try { const r = await fetch('status.json', { cache: 'no-store' }); if (r.ok) status = await r.json(); } catch {}
-let items = [];   // { path, url, info, w, h, slot }
 
-const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+// header spec state + notices
+const notices = [];
+$('#specState').innerHTML = Object.entries(rules.stores).map(([k, s]) => {
+  const st = status?.[k], stale = isStale(s, st), err = st?.fetchError, old = st?.lastFetched && Date.now() - Date.parse(st.lastFetched) > 3 * 864e5;
+  if (stale) notices.push(`<div class="notice stale" role="status"><span class="dot stale" style="margin-top:6px"></span><div><b>${s.name}'s spec page changed on ${fmtDay(st.changedOn)}.</b> These rules were verified on ${fmtDay(s.verifiedOn)} and may be outdated. <a href="${s.url}" target="_blank" rel="noopener">Review the official page</a>.</div></div>`);
+  if (err) notices.push(`<div class="notice err" role="status"><span class="dot err" style="margin-top:6px"></span><div><b>The last check of ${s.name}'s page failed</b> (${esc(err)}). Rules shown are from ${fmtDay(s.verifiedOn)}.</div></div>`);
+  else if (old) notices.push(`<div class="notice err" role="status"><span class="dot" style="margin-top:6px"></span><div>The daily change check hasn't run since ${fmtDate(st.lastFetched)}.</div></div>`);
+  const cls = stale ? 'stale' : err ? 'err' : st?.lastFetched ? 'ok' : '';
+  const label = stale ? 'spec changed' : err ? 'check failed' : st?.lastFetched ? `checked ${fmtDate(st.lastFetched)}` : 'not checked yet';
+  return `<a class="chip" href="${s.url}" target="_blank" rel="noopener" title="Rules verified ${fmtDay(s.verifiedOn)}. Open the official page."><span class="dot ${cls}"></span>${s.name} · ${label}</a>`;
+}).join('');
+$('#notices').innerHTML = notices.join('');
+$('#footSrc').innerHTML = Object.values(rules.stores).map(s => `<a href="${s.url}" target="_blank" rel="noopener">${s.name} spec</a> verified ${fmtDay(s.verifiedOn)}`).join(' · ');
 
-// banners: page changed after rules were verified / last check failed / watcher stopped running
-const banners = [];
-for (const [key, store] of Object.entries(rules.stores)) {
-  const st = status?.[key];
-  if (isStale(store, st)) banners.push(`<div class="banner">${store.name}'s spec page changed on ${st.changedOn}. Rules may be outdated. Check <a href="${store.url}" target="_blank" rel="noopener">the official page</a>.</div>`);
-  if (st?.fetchError) banners.push(`<div class="banner grey">Last check of ${store.name}'s page failed on ${esc(st.lastFetched?.slice(0, 10) || '?')}: ${esc(st.fetchError)}</div>`);
-  if (st?.lastFetched && Date.now() - Date.parse(st.lastFetched) > 3 * 864e5) banners.push(`<div class="banner grey">The change watcher hasn't checked ${store.name}'s page since ${st.lastFetched.slice(0, 10)}.</div>`);
-}
-document.getElementById('banners').innerHTML = banners.join('');
-document.getElementById('foot').innerHTML = Object.entries(rules.stores).map(([k, s]) =>
-  `${s.name} rules verified on ${s.verifiedOn} · <a href="${s.url}" target="_blank" rel="noopener">official page</a> · last checked for changes: ${status?.[k]?.lastFetched?.slice(0, 16).replace('T', ' ') || 'not yet'}`).join('<br>');
+// slot description used by the empty state and the specs tab
+const slotRule = s => s.sizes ? dims(s.sizes) + (s.landscapeOnly ? '' : ' or landscape')
+  : [s.minSide && `sides ${s.minSide}–${s.maxSide}px`, s.maxLongToShort && `long side ≤ ${s.maxLongToShort}× short`, s.ratios && s.ratios.map(r => r.join(':')).join(' or ')].filter(Boolean).join(', ');
+$('#slotRef').innerHTML = rules.slots.map(s => `<div><b>${esc(s.label)}</b><span class="mono">${esc(slotRule(s))}</span><br><span>${rules.stores[s.store].name} · ${s.min === s.max ? `exactly ${s.max}` : `${s.min}–${s.max} images`}</span></div>`).join('');
+
+// specs tab
+$('#tab-specs').innerHTML = Object.entries(rules.stores).map(([k, st]) => `
+  <div class="spec-store">
+    <div class="spec-head"><h2>${st.name}</h2><span>Verified ${fmtDay(st.verifiedOn)} against <a href="${st.url}" target="_blank" rel="noopener">the official page</a></span></div>
+    <div class="table-wrap"><table>
+      <thead><tr><th>Slot</th><th>Accepted size</th><th>Images</th><th>Format</th><th>Requirement</th></tr></thead>
+      <tbody>${rules.slots.filter(s => s.store === k).map(s => `<tr>
+        <td>${esc(s.label)}</td><td class="mono">${esc(slotRule(s))}${s.recommend ? `<br><span style="color:var(--ink3)">recommended ${s.recommend.ratio.join(':')}, ≥ ${s.recommend.minSize.join('×')}</span>` : ''}</td>
+        <td class="mono">${s.min === s.max ? s.max : `${s.min}–${s.max}`}</td>
+        <td>${st.formats.map(f => f.toUpperCase()).join(', ')}${s.png24 ? ', 24-bit, no alpha' : s.noAlpha ? ', no alpha' : ''}</td>
+        <td style="color:var(--ink2)">${s.required ? esc(s.required) : 'Optional'}</td></tr>`).join('')}</tbody>
+    </table></div>
+    <p class="spec-note">${esc(st.note)}</p>
+  </div>`).join('');
+
+// ---------- checking ----------
+let items = [], filter = 'all';
+const slotOf = id => rules.slots.find(s => s.id === id);
 
 async function addFile(path, blob) {
-  const bytes = new Uint8Array(await blob.slice(0, 1 << 20).arrayBuffer());
-  const info = inspect(bytes);
-  if (info.format === 'unknown') { items.push({ path, info, w: 0, h: 0, slot: '' }); return; }
-  let w = info.w, h = info.h;
+  const info = inspect(new Uint8Array(await blob.slice(0, 1 << 20).arrayBuffer()));
+  if (info.format === 'unknown') { items.push({ path, info, w: 0, h: 0, bytes: blob.size, slot: '' }); return; }
+  let { w, h } = info;
   if (!w) { const bmp = await createImageBitmap(blob); w = bmp.width; h = bmp.height; bmp.close(); }
-  items.push({ path, url: URL.createObjectURL(blob), info, w, h, slot: guessSlot(rules, path, w, h) });
+  items.push({ path, url: URL.createObjectURL(blob), info, w, h, bytes: blob.size, slot: guessSlot(rules, path, w, h) });
 }
 
 async function addAll(list) {
-  for (const f of list) {
-    const path = f.webkitRelativePath || f.relPath || f.name;
-    if (/\.zip$/i.test(f.name)) {
-      const zip = await JSZip.loadAsync(f);
-      for (const e of Object.values(zip.files))
-        if (!e.dir && /\.(png|jpe?g)$/i.test(e.name) && !/(^|\/)(__MACOSX|\.)/.test(e.name)) await addFile(e.name, await e.async('blob'));
-    } else if (/\.(png|jpe?g)$/i.test(f.name)) await addFile(path, f);
-  }
+  const drop = $('#drop');
+  drop.dataset.busy = 'Reading files…'; drop.classList.add('busy');
+  try {
+    for (const f of list) {
+      const path = (f.webkitRelativePath || f.relPath || f.name).replace(/\\/g, '/');
+      if (/\.zip$/i.test(f.name)) {
+        const zip = await JSZip.loadAsync(f);
+        for (const e of Object.values(zip.files)) {
+          const name = e.name.replace(/\\/g, '/');
+          if (!e.dir && /\.(png|jpe?g)$/i.test(name) && !/(^|\/)(__MACOSX|\.)/.test(name)) await addFile(name, await e.async('blob'));
+        }
+      } else if (/\.(png|jpe?g)$/i.test(f.name)) await addFile(path, f);
+    }
+  } catch (e) { alert('Could not read a file: ' + e.message); }
+  drop.classList.remove('busy');
+  const seen = new Set(); items = items.filter(i => !seen.has(i.path) && seen.add(i.path));   // re-adding the same file replaces nothing twice
   items.sort((a, b) => a.path.localeCompare(b.path, undefined, { numeric: true }));
   render();
 }
 
-function render() {
-  const out = document.getElementById('out');
-  if (!items.length) { out.innerHTML = ''; return; }
-  const opts = s => `<option value="">— pick a slot —</option>` + rules.slots.map(x => `<option value="${x.id}"${x.id === s ? ' selected' : ''}>${esc(x.label)}</option>`).join('');
-  const rows = items.map((it, i) => {
-    const r = it.info.format === 'unknown' ? { status: 'fail', reasons: ['not a PNG or JPEG file'] } : checkImage(rules, it.slot, it.info, it.w, it.h);
-    it.result = r.status;
-    return `<tr><td>${it.url ? `<img src="${it.url}" alt="">` : ''}</td><td>${esc(it.path)}</td><td>${it.w}×${it.h}</td>
-      <td>${it.info.format.toUpperCase()}</td><td>${it.info.alpha ? 'yes' : 'no'}</td>
-      <td><select data-i="${i}">${opts(it.slot)}</select></td>
-      <td><span class="${r.status}">${r.status.toUpperCase()}</span><div class="why">${r.reasons.map(esc).join('<br>')}</div></td></tr>`;
-  }).join('');
-  const counts = checkCounts(rules, items.map(i => i.slot));
-  const crow = counts.map(c => `<tr><td>${esc(c.slot.label)}</td><td>${rules.stores[c.slot.store].name}</td><td><span class="${c.status}">${c.status.toUpperCase()}</span></td><td class="why">${esc(c.reason)}${c.slot.required ? `<br>Apple: "${esc(c.slot.required)}"` : ''}</td></tr>`).join('');
-  const fails = items.filter(i => i.result === 'fail').length + counts.filter(c => c.status === 'fail').length;
-  const warns = items.filter(i => i.result === 'warn').length;
-  out.innerHTML = `<div class="verdict ${fails ? 'fail' : warns ? 'warn' : 'pass'}">${fails ? `${fails} problem${fails > 1 ? 's' : ''} to fix` : warns ? `Passes, with ${warns} recommendation${warns > 1 ? 's' : ''}` : `All ${items.length} images pass`}</div>
-    <div class="wrap"><table><tr><th>Slot</th><th>Store</th><th>Count</th><th>Details</th></tr>${crow}</table></div><br>
-    <div class="wrap"><table><tr><th></th><th>File</th><th>Size</th><th>Format</th><th>Alpha</th><th>Slot</th><th>Result</th></tr>${rows}</table></div>`;
-  out.querySelectorAll('select').forEach(s => s.onchange = () => { items[+s.dataset.i].slot = s.value; render(); });
+function evaluate() {
+  items.forEach(it => {
+    it.r = it.info.format === 'unknown' ? { status: 'fail', reasons: ['Not a PNG or JPEG file'] } : checkImage(rules, it.slot, it.info, it.w, it.h);
+    it.fails = it.r.status === 'fail' ? it.r.reasons.filter(x => !/^recommended/.test(x)) : [];
+  });
+  return checkCounts(rules, items.map(i => i.slot));
 }
 
-const drop = document.getElementById('drop');
-drop.ondragover = e => { e.preventDefault(); drop.classList.add('over'); };
-drop.ondragleave = () => drop.classList.remove('over');
-drop.ondrop = async e => {
-  e.preventDefault(); drop.classList.remove('over');
+function render() {
+  const has = items.length > 0;
+  $('#drop').hidden = has; $('#what').hidden = has; $('#results').hidden = !has;
+  if (!has) return;
+  const counts = evaluate();
+  const n = { pass: 0, warn: 0, fail: 0 };
+  items.forEach(i => n[i.r.status]++);
+  const quotaFails = counts.filter(c => c.status === 'fail');
+  const problems = n.fail + quotaFails.length;
+
+  $('#fileCount').innerHTML = `<b>${items.length}</b> file${items.length > 1 ? 's' : ''} in ${counts.length} slot${counts.length !== 1 ? 's' : ''}`;
+  const verdict = problems ? `<span class="t-fail">${problems} issue${problems > 1 ? 's' : ''} to fix</span><small>${[n.fail && `${n.fail} image${n.fail > 1 ? 's' : ''} failed`, quotaFails.length && `${quotaFails.length} slot count${quotaFails.length > 1 ? 's' : ''} out of range`].filter(Boolean).join(' · ')}</small>`
+    : n.warn ? `<span class="t-warn">Ready, with ${n.warn} recommendation${n.warn > 1 ? 's' : ''}</span><small>Nothing blocks upload.</small>`
+    : `<span class="t-pass">Ready to upload</span><small>Every image meets the technical rules.</small>`;
+  $('#summary').innerHTML = `<div><div class="label">Result</div><div class="verdict">${verdict}</div></div>
+    <div><div class="label">Passed</div><div class="num t-pass">${n.pass}</div></div>
+    <div><div class="label">Warnings</div><div class="num ${n.warn ? 't-warn' : ''}">${n.warn}</div></div>
+    <div><div class="label">Failed</div><div class="num ${n.fail ? 't-fail' : ''}">${n.fail}</div></div>`;
+
+  $('#filters').innerHTML = [['all', 'All', items.length], ['fail', 'Failed', n.fail], ['warn', 'Warnings', n.warn], ['pass', 'Passed', n.pass]]
+    .map(([k, l, c]) => `<button type="button" data-f="${k}" aria-pressed="${filter === k}">${l}<span class="n">${c}</span></button>`).join('');
+  $('#filters').querySelectorAll('button').forEach(b => b.onclick = () => { filter = b.dataset.f; render(); });
+
+  const opts = sel => `<option value="">Choose a slot…</option>` + Object.entries(rules.stores).map(([k, st]) =>
+    `<optgroup label="${st.name}">${rules.slots.filter(s => s.store === k).map(s => `<option value="${s.id}"${s.id === sel ? ' selected' : ''}>${esc(s.label)}</option>`).join('')}</optgroup>`).join('');
+
+  const order = ['', ...rules.slots.map(s => s.id)];
+  const ids = [...new Set(items.map(i => i.slot))].sort((a, b) => order.indexOf(a) - order.indexOf(b));
+  $('#groups').innerHTML = ids.map(id => {
+    const s = slotOf(id), list = items.map((it, i) => [it, i]).filter(([it]) => it.slot === id);
+    const shown = list.filter(([it]) => filter === 'all' || it.r.status === filter);
+    const c = counts.find(x => x.slot.id === id);
+    const head = s ? `<h3>${esc(s.label)}</h3><span class="store">${rules.stores[s.store].name}</span>
+        <div class="quota"><span class="mono ${c.status === 'fail' ? 't-fail' : ''}">${c.n} / ${s.max}</span><span class="meter ${c.status === 'fail' ? 'fail' : ''}"><i style="width:${Math.min(100, c.n / s.max * 100)}%"></i></span></div>`
+      : `<h3>Unassigned</h3><span class="store">Pick a slot for each file</span>`;
+    const req = c?.status === 'fail' ? `<div class="greq fail">${esc(c.reason)}</div>` : s?.required ? `<div class="greq">${rules.stores[s.store].name}: “${esc(s.required)}”</div>` : '';
+    const cards = shown.map(([it, i]) => {
+      const bad = new Set(it.fails.join(' ').match(/size|side|ratio|format|alpha|24-bit/g) || []);
+      return `<article class="card">
+        <div class="thumb">${it.url ? `<img src="${it.url}" alt="" loading="lazy">` : '<span class="nofile">No preview</span>'}<span class="pill ${it.r.status}">${it.r.status}</span></div>
+        <div class="cbody">
+          <div class="fname" title="${esc(it.path)}">${esc(it.path.split('/').pop())}</div>
+          <div class="facts"><span class="${bad.has('size') || bad.has('side') || bad.has('ratio') ? 'bad' : ''}">${it.w}×${it.h}</span><span class="${bad.has('format') ? 'bad' : ''}">${it.info.format.toUpperCase()}</span><span class="${bad.has('alpha') || bad.has('24-bit') ? 'bad' : ''}">${it.info.alpha ? 'alpha' : 'no alpha'}</span><span>${fmtSize(it.bytes)}</span></div>
+          <select data-i="${i}" aria-label="Slot for ${esc(it.path)}">${opts(it.slot)}</select>
+          ${it.r.reasons.length ? `<ul class="reasons">${it.r.reasons.map(x => `<li class="${/^recommended/.test(x) ? 'warn' : 'fail'}">${esc(x[0].toUpperCase() + x.slice(1))}</li>`).join('')}</ul>` : ''}
+        </div></article>`;
+    }).join('');
+    return `<section class="group"><div class="ghead">${head}</div>${req}${cards ? `<div class="grid">${cards}</div>` : `<div class="empty-filter">No ${filter === 'warn' ? 'warnings' : filter === 'fail' ? 'failures' : 'passes'} in this slot.</div>`}</section>`;
+  }).join('');
+  $('#groups').querySelectorAll('select').forEach(sel => sel.onchange = () => { items[+sel.dataset.i].slot = sel.value; render(); });
+}
+
+// export
+$('#export').onclick = () => {
+  evaluate();
+  const q = v => `"${String(v).replace(/"/g, '""')}"`;
+  const rows = [['file', 'slot', 'store', 'width', 'height', 'format', 'alpha', 'bytes', 'result', 'reasons'],
+    ...items.map(i => { const s = slotOf(i.slot); return [i.path, s?.label || '', s ? rules.stores[s.store].name : '', i.w, i.h, i.info.format, i.info.alpha, i.bytes, i.r.status, i.r.reasons.join('; ')]; })];
+  const a = Object.assign(document.createElement('a'), { href: URL.createObjectURL(new Blob([rows.map(r => r.map(q).join(',')).join('\n')], { type: 'text/csv' })), download: `screenshot-check-${new Date().toISOString().slice(0, 10)}.csv` });
+  a.click(); URL.revokeObjectURL(a.href);
+};
+$('#clear').onclick = () => { items.forEach(i => i.url && URL.revokeObjectURL(i.url)); items = []; filter = 'all'; render(); };
+
+// inputs: file pickers, folder picker, and drag and drop anywhere on the page
+$('#files').onchange = e => { addAll([...e.target.files]); e.target.value = ''; };
+$('#folder').onchange = e => { addAll([...e.target.files]); e.target.value = ''; };
+let depth = 0;
+addEventListener('dragenter', e => { e.preventDefault(); depth++; $('#drop').classList.add('over'); });
+addEventListener('dragleave', () => { if (--depth <= 0) { depth = 0; $('#drop').classList.remove('over'); } });
+addEventListener('dragover', e => e.preventDefault());
+addEventListener('drop', async e => {
+  e.preventDefault(); depth = 0; $('#drop').classList.remove('over');
   const files = [];
   const walk = async (entry, prefix) => {
-    if (entry.isFile) { const f = await new Promise(r => entry.file(r)); f.relPath = prefix + f.name; files.push(f); }
+    if (entry.isFile) { const f = await new Promise((ok, no) => entry.file(ok, no)); f.relPath = prefix + f.name; files.push(f); }
     else if (entry.isDirectory) {
       const reader = entry.createReader();
-      for (let batch; (batch = await new Promise(r => reader.readEntries(r))).length;) for (const c of batch) await walk(c, prefix + entry.name + '/');
+      for (let batch; (batch = await new Promise((ok, no) => reader.readEntries(ok, no))).length;) for (const c of batch) await walk(c, prefix + entry.name + '/');
     }
   };
-  for (const it of e.dataTransfer.items) { const en = it.webkitGetAsEntry?.(); if (en) await walk(en, ''); }
-  await addAll(files);
-};
-document.getElementById('files').onchange = e => addAll([...e.target.files]);
-document.getElementById('folder').onchange = e => addAll([...e.target.files]);
-document.getElementById('clear').onclick = () => { items.forEach(i => i.url && URL.revokeObjectURL(i.url)); items = []; render(); };
+  const entries = [...e.dataTransfer.items].map(it => it.webkitGetAsEntry?.()).filter(Boolean);
+  if (entries.length) for (const en of entries) await walk(en, ''); else files.push(...e.dataTransfer.files);
+  if (files.length) addAll(files);
+});
 </script>
 </body></html>
