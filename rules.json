@@ -1,0 +1,39 @@
+{
+  "stores": {
+    "apple": {
+      "name": "Apple",
+      "url": "https://developer.apple.com/help/app-store-connect/reference/screenshot-specifications",
+      "verifiedOn": "2026-11-05",
+      "formats": ["png", "jpeg"],
+      "note": "Images can't include alpha channels or transparencies. Up to 10 screenshots per display size, at least 1."
+    },
+    "google": {
+      "name": "Google Play",
+      "url": "https://support.google.com/googleplay/android-developer/answer/9866151",
+      "verifiedOn": "2026-11-05",
+      "formats": ["png", "jpeg"],
+      "note": "JPEG or 24-bit PNG (no alpha). Up to 8 screenshots per device type. No max file size is stated on the page."
+    }
+  },
+  "slots": [
+    { "id": "iphone-large", "store": "apple", "label": "iPhone 6.9\" (Dynamic Island, large)", "hints": ["iphone-6.9", "6.9", "iphone"],
+      "sizes": [[1320, 2868], [1290, 2796], [1260, 2736]], "min": 1, "max": 10, "noAlpha": true },
+    { "id": "iphone-6.5", "store": "apple", "label": "iPhone 6.5\" (Face ID, large)", "hints": ["6.5"],
+      "sizes": [[1284, 2778], [1242, 2688]], "min": 1, "max": 10, "noAlpha": true,
+      "required": "Required if app runs on iPhone and screenshots for iPhone with Dynamic Island (large display) aren't provided" },
+    { "id": "iphone-medium", "store": "apple", "label": "iPhone 6.3\" (Dynamic Island, medium)", "hints": ["6.3", "medium"],
+      "sizes": [[1206, 2622], [1179, 2556]], "min": 1, "max": 10, "noAlpha": true,
+      "required": "At least one screenshot for iPhone with Dynamic Island (medium display)" },
+    { "id": "ipad-13", "store": "apple", "label": "iPad 13\"", "hints": ["ipad"],
+      "sizes": [[2064, 2752], [2048, 2732]], "min": 1, "max": 10, "noAlpha": true,
+      "required": "Required if app runs on iPad" },
+
+    { "id": "play-phone", "store": "google", "label": "Play phone", "hints": ["play-phone", "google-play-phone", "android", "phone"],
+      "minSide": 320, "maxSide": 3840, "maxLongToShort": 2, "min": 2, "max": 8, "png24": true,
+      "recommend": { "ratio": [9, 16], "minSize": [1080, 1920] } },
+    { "id": "play-tablet", "store": "google", "label": "Play tablet (7\" / 10\")", "hints": ["tablet"],
+      "minSide": 1080, "maxSide": 7680, "ratios": [[9, 16], [16, 9]], "min": 4, "max": 8, "png24": true },
+    { "id": "play-feature", "store": "google", "label": "Play feature graphic", "hints": ["feature"],
+      "sizes": [[1024, 500]], "landscapeOnly": true, "min": 1, "max": 1, "png24": true }
+  ]
+}

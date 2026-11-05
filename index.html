@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Store Screenshot Checker</title>
+<style>
+  :root{--bg:#f6f7f5;--card:#fff;--ink:#17201a;--mute:#5c6660;--line:#dfe3df;--pass:#1f7a3d;--warn:#9a6700;--fail:#b42318;--warnbg:#fff4d6;--greybg:#eceeec;--accent:#2e4636}
+  @media (prefers-color-scheme:dark){:root{--bg:#0f1411;--card:#171e19;--ink:#e8ede9;--mute:#9aa59e;--line:#2a332d;--pass:#5fd38a;--warn:#f0c048;--fail:#ff7b6e;--warnbg:#3a2f0f;--greybg:#222a25;--accent:#bacba5}}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+  main{max-width:1100px;margin:0 auto;padding:24px 16px 48px}
+  h1{margin:0 0 4px;font-size:26px}
+  .lead{color:var(--mute);margin:0 0 20px}
+  .banner{padding:12px 14px;border-radius:10px;margin:0 0 12px;background:var(--warnbg)}
+  .banner.grey{background:var(--greybg)}
+  .banner a{color:inherit;font-weight:600}
+  .drop{border:2px dashed var(--line);border-radius:14px;padding:28px 16px;text-align:center;background:var(--card);cursor:pointer}
+  .drop.over{border-color:var(--accent)}
+  .drop b{display:block;font-size:17px;margin-bottom:4px}
+  .btns{margin-top:12px;display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
+  button,label.btn{font:inherit;padding:8px 14px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--ink);cursor:pointer}
+  .note{color:var(--mute);font-size:13px;margin:12px 0 0}
+  .verdict{margin:24px 0 8px;font-size:20px;font-weight:700}
+  .wrap{overflow-x:auto;background:var(--card);border:1px solid var(--line);border-radius:12px}
+  table{width:100%;border-collapse:collapse;min-width:720px}
+  th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{font-size:12px;text-transform:uppercase;letter-spacing:.04em;color:var(--mute)}
+  td img{width:44px;height:64px;object-fit:contain;background:var(--bg);border-radius:4px}
+  select{font:inherit;max-width:220px;background:var(--bg);color:var(--ink);border:1px solid var(--line);border-radius:6px;padding:3px}
+  .pass{color:var(--pass);font-weight:700}.warn{color:var(--warn);font-weight:700}.fail{color:var(--fail);font-weight:700}
+  .why{color:var(--mute);font-size:13px}
+  footer{margin-top:28px;color:var(--mute);font-size:13px}
+  footer a{color:inherit}
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+</head><body><main>
+<h1>Store Screenshot Checker</h1>
+<p class="lead">Checks App Store and Google Play screenshots against the official technical rules. Files stay in your browser.</p>
+<div id="banners"></div>
+
+<div class="drop" id="drop">
+  <b>Drop a ZIP, a folder or images here</b>
+  <span class="why">PNG or JPEG. Folder names like <code>google-play-phone</code> or <code>ipad</code> help pick the right slot.</span>
+  <div class="btns">
+    <label class="btn">Choose files<input id="files" type="file" multiple accept=".png,.jpg,.jpeg,.zip" hidden></label>
+    <label class="btn">Choose folder<input id="folder" type="file" webkitdirectory hidden></label>
+    <button id="clear" type="button">Clear</button>
+  </div>
+</div>
+<p class="note">Checks technical rules only (size, shape, format, transparency, count). Content is judged by human review, for example iPad slots must show the app running on an iPad.</p>
+
+<div id="out"></div>
+<footer id="foot"></footer>
+</main>
+
+<script type="module">
+import { inspect, guessSlot, checkImage, checkCounts, isStale } from './check.js';
+
+const rules = await (await fetch('rules.json', { cache: 'no-store' })).json();
+let status = null;
+try { const r = await fetch('status.json', { cache: 'no-store' }); if (r.ok) status = await r.json(); } catch {}
+let items = [];   // { path, url, info, w, h, slot }
+
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+// banners: page changed after rules were verified / last check failed / watcher stopped running
+const banners = [];
+for (const [key, store] of Object.entries(rules.stores)) {
+  const st = status?.[key];
+  if (isStale(store, st)) banners.push(`<div class="banner">${store.name}'s spec page changed on ${st.changedOn}. Rules may be outdated. Check <a href="${store.url}" target="_blank" rel="noopener">the official page</a>.</div>`);
+  if (st?.fetchError) banners.push(`<div class="banner grey">Last check of ${store.name}'s page failed on ${esc(st.lastFetched?.slice(0, 10) || '?')}: ${esc(st.fetchError)}</div>`);
+  if (st?.lastFetched && Date.now() - Date.parse(st.lastFetched) > 3 * 864e5) banners.push(`<div class="banner grey">The change watcher hasn't checked ${store.name}'s page since ${st.lastFetched.slice(0, 10)}.</div>`);
+}
+document.getElementById('banners').innerHTML = banners.join('');
+document.getElementById('foot').innerHTML = Object.entries(rules.stores).map(([k, s]) =>
+  `${s.name} rules verified on ${s.verifiedOn} · <a href="${s.url}" target="_blank" rel="noopener">official page</a> · last checked for changes: ${status?.[k]?.lastFetched?.slice(0, 16).replace('T', ' ') || 'not yet'}`).join('<br>');
+
+async function addFile(path, blob) {
+  const bytes = new Uint8Array(await blob.slice(0, 1 << 20).arrayBuffer());
+  const info = inspect(bytes);
+  if (info.format === 'unknown') { items.push({ path, info, w: 0, h: 0, slot: '' }); return; }
+  let w = info.w, h = info.h;
+  if (!w) { const bmp = await createImageBitmap(blob); w = bmp.width; h = bmp.height; bmp.close(); }
+  items.push({ path, url: URL.createObjectURL(blob), info, w, h, slot: guessSlot(rules, path, w, h) });
+}
+
+async function addAll(list) {
+  for (const f of list) {
+    const path = f.webkitRelativePath || f.relPath || f.name;
+    if (/\.zip$/i.test(f.name)) {
+      const zip = await JSZip.loadAsync(f);
+      for (const e of Object.values(zip.files))
+        if (!e.dir && /\.(png|jpe?g)$/i.test(e.name) && !/(^|\/)(__MACOSX|\.)/.test(e.name)) await addFile(e.name, await e.async('blob'));
+    } else if (/\.(png|jpe?g)$/i.test(f.name)) await addFile(path, f);
+  }
+  items.sort((a, b) => a.path.localeCompare(b.path, undefined, { numeric: true }));
+  render();
+}
+
+function render() {
+  const out = document.getElementById('out');
+  if (!items.length) { out.innerHTML = ''; return; }
+  const opts = s => `<option value="">— pick a slot —</option>` + rules.slots.map(x => `<option value="${x.id}"${x.id === s ? ' selected' : ''}>${esc(x.label)}</option>`).join('');
+  const rows = items.map((it, i) => {
+    const r = it.info.format === 'unknown' ? { status: 'fail', reasons: ['not a PNG or JPEG file'] } : checkImage(rules, it.slot, it.info, it.w, it.h);
+    it.result = r.status;
+    return `<tr><td>${it.url ? `<img src="${it.url}" alt="">` : ''}</td><td>${esc(it.path)}</td><td>${it.w}×${it.h}</td>
+      <td>${it.info.format.toUpperCase()}</td><td>${it.info.alpha ? 'yes' : 'no'}</td>
+      <td><select data-i="${i}">${opts(it.slot)}</select></td>
+      <td><span class="${r.status}">${r.status.toUpperCase()}</span><div class="why">${r.reasons.map(esc).join('<br>')}</div></td></tr>`;
+  }).join('');
+  const counts = checkCounts(rules, items.map(i => i.slot));
+  const crow = counts.map(c => `<tr><td>${esc(c.slot.label)}</td><td>${rules.stores[c.slot.store].name}</td><td><span class="${c.status}">${c.status.toUpperCase()}</span></td><td class="why">${esc(c.reason)}${c.slot.required ? `<br>Apple: "${esc(c.slot.required)}"` : ''}</td></tr>`).join('');
+  const fails = items.filter(i => i.result === 'fail').length + counts.filter(c => c.status === 'fail').length;
+  const warns = items.filter(i => i.result === 'warn').length;
+  out.innerHTML = `<div class="verdict ${fails ? 'fail' : warns ? 'warn' : 'pass'}">${fails ? `${fails} problem${fails > 1 ? 's' : ''} to fix` : warns ? `Passes, with ${warns} recommendation${warns > 1 ? 's' : ''}` : `All ${items.length} images pass`}</div>
+    <div class="wrap"><table><tr><th>Slot</th><th>Store</th><th>Count</th><th>Details</th></tr>${crow}</table></div><br>
+    <div class="wrap"><table><tr><th></th><th>File</th><th>Size</th><th>Format</th><th>Alpha</th><th>Slot</th><th>Result</th></tr>${rows}</table></div>`;
+  out.querySelectorAll('select').forEach(s => s.onchange = () => { items[+s.dataset.i].slot = s.value; render(); });
+}
+
+const drop = document.getElementById('drop');
+drop.ondragover = e => { e.preventDefault(); drop.classList.add('over'); };
+drop.ondragleave = () => drop.classList.remove('over');
+drop.ondrop = async e => {
+  e.preventDefault(); drop.classList.remove('over');
+  const files = [];
+  const walk = async (entry, prefix) => {
+    if (entry.isFile) { const f = await new Promise(r => entry.file(r)); f.relPath = prefix + f.name; files.push(f); }
+    else if (entry.isDirectory) {
+      const reader = entry.createReader();
+      for (let batch; (batch = await new Promise(r => reader.readEntries(r))).length;) for (const c of batch) await walk(c, prefix + entry.name + '/');
+    }
+  };
+  for (const it of e.dataTransfer.items) { const en = it.webkitGetAsEntry?.(); if (en) await walk(en, ''); }
+  await addAll(files);
+};
+document.getElementById('files').onchange = e => addAll([...e.target.files]);
+document.getElementById('folder').onchange = e => addAll([...e.target.files]);
+document.getElementById('clear').onclick = () => { items.forEach(i => i.url && URL.revokeObjectURL(i.url)); items = []; render(); };
+</script>
+</body></html>
