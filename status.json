@@ -1,14 +1,14 @@
 {
   "apple": {
     "url": "https://developer.apple.com/help/app-store-connect/reference/screenshot-specifications",
-    "lastFetched": "2026-11-13T11:01:59.765Z",
+    "lastFetched": "2026-11-14T10:29:20.738Z",
     "contentHash": "3ae6998a185eaeec4fbc2b104754e6b082e6ab710e168ca4eebed520ef0c257e",
     "changedOn": null,
     "fetchError": null
   },
   "google": {
     "url": "https://support.google.com/googleplay/android-developer/answer/9866151",
-    "lastFetched": "2026-11-13T11:01:59.765Z",
+    "lastFetched": "2026-11-14T10:29:20.738Z",
     "contentHash": "b3a8e386a30e707fb2ac3879356b350c8060748eb31a225b5fe39a37a70d2005",
     "changedOn": null,
     "fetchError": null
